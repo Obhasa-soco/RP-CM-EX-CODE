@@ -1,0 +1,25 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore build artifacts
+build/
+dist/
+
+# Ignore sensitive Firebase credentials
+serviceAccountKey.json
+(second)serviceAccountKey.json
+
+# Ignore Python bytecode and cache
+*.pyc
+__pycache__/
+
+# Ignore IDE-specific files
+.idea/
+.vscode/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Don't Know
+main.spec
