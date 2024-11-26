@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import pandas as pd
 import os
-import sys  # Add this import
+import sys
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -15,33 +15,42 @@ cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+
 # Function to upload a single record to Firebase
-def upload_manual_entry(barcode, status, collection_name):
+def upload_manual_entry(voucher_code, total_quota, qr_code, collection_name):
     try:
-        doc_ref = db.collection(collection_name).document(barcode)
+        doc_ref = db.collection(collection_name).document(voucher_code)
         doc_ref.set({
-            'Barcode': barcode,
-            'Status': status,
+            'voucher_code': voucher_code,
+            'total_quota': total_quota,
+            'qr_code': qr_code,
         })
         messagebox.showinfo("Success", "Manual entry uploaded to Firebase.")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to upload data to Firebase: {e}")
 
+
 # Function to upload CSV file to Firebase
 def upload_csv_to_firebase(csv_file_path, collection_name):
     try:
         df = pd.read_csv(csv_file_path)
+        required_columns = {'voucher_code', 'total_quota', 'qr_code'}
+        if not required_columns.issubset(df.columns):
+            messagebox.showerror("Error",
+                                 "CSV file is missing required columns: 'voucher_code', 'total_quota', or 'qr_code'.")
+            return
+
         for index, row in df.iterrows():
-            # Use Barcode as document ID and upload the status and other fields
-            doc_ref = db.collection(collection_name).document(row['Barcode'])
+            doc_ref = db.collection(collection_name).document(row['voucher_code'])
             doc_ref.set({
-                'Barcode': row['Barcode'],
-                'Status': row['Status'],
-                # Add other fields as necessary based on your CSV file structure
+                'voucher_code': row['voucher_code'],
+                'total_quota': row['total_quota'],
+                'qr_code': row['qr_code'],
             })
         messagebox.showinfo("Success", f"Uploaded {len(df)} records to Firebase.")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to upload data to Firebase: {e}")
+
 
 # Function to handle file selection
 def select_file():
@@ -54,28 +63,32 @@ def select_file():
         global selected_file_path
         selected_file_path = file_path
 
+
 # Function to trigger upload when "Send CSV" button is clicked
 def send_csv_to_firebase():
     if selected_file_path:
-        collection_name = 'barcode_status'  # Set your collection name
+        collection_name = 'voucher_data'  # Set your collection name
         upload_csv_to_firebase(selected_file_path, collection_name)
     else:
         messagebox.showerror("Error", "No file selected.")
 
+
 # Function to trigger manual entry upload
 def send_manual_entry_to_firebase():
-    barcode = barcode_entry.get()
-    status = status_entry.get()
-    if barcode and status:
-        collection_name = 'barcode_status'  # Set your collection name
-        upload_manual_entry(barcode, status, collection_name)
+    voucher_code = voucher_code_entry.get()
+    total_quota = total_quota_entry.get()
+    qr_code = qr_code_entry.get()
+    if voucher_code and total_quota and qr_code:
+        collection_name = 'voucher_data'  # Set your collection name
+        upload_manual_entry(voucher_code, total_quota, qr_code, collection_name)
     else:
-        messagebox.showerror("Error", "Please enter both Barcode and Status.")
+        messagebox.showerror("Error", "Please enter Voucher Code, Total Quota, and QR Code.")
+
 
 # GUI Setup
 app = tk.Tk()
 app.title("CSV and Manual Entry to Firebase Uploader")
-app.geometry("400x300")
+app.geometry("400x400")
 
 # Label for file selection
 file_label = tk.Label(app, text="No file selected.", fg="blue")
@@ -93,17 +106,23 @@ send_csv_button.pack(pady=5)
 manual_entry_label = tk.Label(app, text="Manual Entry:", font=("Helvetica", 12))
 manual_entry_label.pack(pady=10)
 
-# Barcode entry field
-barcode_label = tk.Label(app, text="Barcode:")
-barcode_label.pack()
-barcode_entry = tk.Entry(app)
-barcode_entry.pack()
+# Voucher Code entry field
+voucher_code_label = tk.Label(app, text="Voucher Code:")
+voucher_code_label.pack()
+voucher_code_entry = tk.Entry(app)
+voucher_code_entry.pack()
 
-# Status entry field
-status_label = tk.Label(app, text="Status:")
-status_label.pack()
-status_entry = tk.Entry(app)
-status_entry.pack()
+# Total Quota entry field
+total_quota_label = tk.Label(app, text="Total Quota:")
+total_quota_label.pack()
+total_quota_entry = tk.Entry(app)
+total_quota_entry.pack()
+
+# QR Code entry field
+qr_code_label = tk.Label(app, text="QR Code:")
+qr_code_label.pack()
+qr_code_entry = tk.Entry(app)
+qr_code_entry.pack()
 
 # Button to send manual entry to Firebase
 send_manual_button = tk.Button(app, text="Send Manual Entry to Firebase", command=send_manual_entry_to_firebase)
